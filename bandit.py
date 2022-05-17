@@ -1,12 +1,12 @@
 # bandit.py
-#
-from email.errors import ObsoleteHeaderDefect
+
 import math
 import matplotlib.pyplot as plt
 import random
 
+
 class Bandit:
-    def __init__(self, seed: int =1, prob: float =0.3) -> None:
+    def __init__(self, seed: int = 1, prob: float = 0.3) -> None:
         self.prob = prob
         self.rg = random.Random(seed)
 
@@ -16,8 +16,9 @@ class Bandit:
             return True
         return False
 
+
 class BanditManager:
-    def __init__(self, seed = 1, n_bandits = 2, high_prob = 0.3, low_prob = 0.05, mean_interval: float = 1500.0):
+    def __init__(self, seed=1, n_bandits=2, high_prob=0.3, low_prob=0.05, mean_interval: float = 1500.0) -> None:
         seed_offset = 713
         self.rg = random.Random(seed)
         self.bandits = [Bandit(seed+seed_offset+i) for i in range(n_bandits)]
@@ -26,13 +27,15 @@ class BanditManager:
         self.count = 0
         self.mean_interval = mean_interval
         self._change_good_one()
-        self.next_update = self.count + math.ceil(self.rg.expovariate(1.0/self.mean_interval))
+        self.next_update = self.count + \
+            math.ceil(self.rg.expovariate(1.0/self.mean_interval))
 
     def update(self):
         self.count += 1
         if self.count >= self.next_update:
             self._change_good_one()
-            self.next_update = self.count + math.ceil(self.rg.expovariate(1.0/self.mean_interval))
+            self.next_update = self.count + \
+                math.ceil(self.rg.expovariate(1.0/self.mean_interval))
 
     def _change_good_one(self):
         good_one = self.rg.randrange(len(self.bandits))
@@ -40,10 +43,12 @@ class BanditManager:
             prob = self.high_prob if i == good_one else self.low_prob
             self.bandits[i].prob = prob
 
+
 class Agent:
     """Agent - Default Agent
     Always selects an agent randomly
     """
+
     def __init__(self, bandits: list[Bandit]) -> None:
         self.score = 0
         self.score_hist = []
@@ -67,6 +72,7 @@ class Agent:
     def post_process(self, b: int, result: bool):
         pass
 
+
 class ObstinateAgent(Agent):
     def __init__(self, bandits: list[Bandit]) -> None:
         super().__init__(bandits)
@@ -74,6 +80,7 @@ class ObstinateAgent(Agent):
 
     def select(self) -> int:
         return self.selected_bandit
+
 
 class HitCounter:
     def __init__(self, size: int = 50) -> None:
@@ -86,8 +93,8 @@ class HitCounter:
         self.pos = (self.pos + 1) % self.size
 
     def hit_ratio(self) -> float:
-        hits = self.array.count(1)
-        return hits / self.size
+        return self.array.count(1) / self.size
+
 
 class SmartAgent1(Agent):
     def __init__(self, bandits: list[Bandit], initial_probs: list[float],
@@ -106,7 +113,8 @@ class SmartAgent1(Agent):
         self.forgetting_rate = forgetting_rate
         if memory_length < 1:
             raise ValueError('Memory length must be positive.')
-        self.hit_counters = [HitCounter(memory_length) for i in range(len(bandits))]
+        self.hit_counters = [HitCounter(memory_length)
+                             for i in range(len(bandits))]
         if random_ratio < 0.0 or 1.0 < random_ratio:
             raise ValueError('Random ratio is of range (0 <= rate <= 1.0')
         self.random_ratio = random_ratio
@@ -115,7 +123,6 @@ class SmartAgent1(Agent):
     def select(self) -> int:
         if random.random() <= self.random_ratio:
             return random.randrange(len(self.bandits))
-
         maxp = -1.0
         selected = -1
         for b in range(len(self.bandits)):
@@ -124,7 +131,7 @@ class SmartAgent1(Agent):
                 maxp = self.probs[b]
         return selected
 
-    def post_process(self, b: int, result: bool):
+    def post_process(self, b: int, result: bool) -> None:
         self.selection_count[b] += 1
         self.hit_counters[b].put(result)
         for i in range(len(self.bandits)):
@@ -132,12 +139,13 @@ class SmartAgent1(Agent):
                              self.forgetting_rate * self.hit_counters[i].hit_ratio())
             self.hist_probs[i].append(self.probs[i])
 
+
 class Simulator:
-    def __init__(self, bandit_manager, agent):
+    def __init__(self, bandit_manager: BanditManager, agent: Agent) -> None:
         self.bandit_manager = bandit_manager
         self.agent = agent
 
-    def run(self, n_steps=10000):
+    def run(self, n_steps: int = 10000):
         for i in range(n_steps):
             self.agent.act()
             self.bandit_manager.update()
@@ -160,7 +168,8 @@ def main() -> None:
     sim2.run(n_steps)
 
     bm3 = BanditManager(seed, n_bandits, mean_interval=mean_interval)
-    smart_agent1 = SmartAgent1(bm3.bandits, [1.0/n_bandits] * n_bandits, 0.2, 50, 0.3)
+    smart_agent1 = SmartAgent1(
+        bm3.bandits, [1.0/n_bandits] * n_bandits, 0.2, 50, 0.3)
     sim3 = Simulator(bm3, smart_agent1)
     sim3.run(n_steps)
 
@@ -177,6 +186,7 @@ def main() -> None:
     a_prob.legend()
     a_prob.set_ylabel('Prob.')
     plt.show()
+
 
 if __name__ == '__main__':
     main()
